@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Tariff vs GDP World Map</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.0/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.14.0/css/all.css">
+    <link href="https://fonts.googleapis.com/css?family=Titillium+Web" rel="stylesheet">
+
+    <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            background: #fff;
+            font-family: 'Titillium Web', sans-serif;
+        }
+
+        .legend {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 6px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.2);
+            line-height: 1.4;
+            font-size: 14px;
+        }
+
+        .legend b {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 16px;
+        }
+
+        .legend i {
+            width: 18px;
+            height: 18px;
+            display: inline-block;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .map-title {
+            position: absolute;
+            top: 10px;
+            left: 80px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 20px;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .description-box {
+            position: absolute;
+            left: 10px;
+            top: 40%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px;
+            max-width: 280px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.4;
+            z-index: 1000;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .toggle-btn-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: space-evenly;
+            width: 50%;
+            z-index: 1000;
+        }
+
+        .toggle-btn {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .toggle-btn:hover {
+            background: rgba(255, 255, 255, 1);
+        }
+    </style>
+
+    <script src="https://unpkg.com/leaflet@1.7.0/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-ajax/2.1.0/leaflet.ajax.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+</head>
+
+<body>
+<div id="map"></div>
+<div class="map-title" id="mapTitle">Reciprical Tariff vs GDP Per Capita Map</div>
+<div class="description-box" id="descriptionBox">
+    This map was created to visualize the recent tariffs being enfored by president Donald Trump. These Tariffs are mainly focused on forign goods and the tariffs very by country. The home is to show how these tariffs commpare to the GDP of the country, to see if the tariffs themselves are fair and just.
+</div>
+
+<!-- Toggle Button Container -->
+<div class="toggle-btn-container">
+    <button class="toggle-btn" id="toggleTitle">Toggle Title</button>
+    <button class="toggle-btn" id="toggleDescription">Toggle Description</button>
+    <button class="toggle-btn" id="toggleLegend">Toggle Legend</button>
+</div>
+
+<script>
+    const csvData = {};
+
+    const map = L.map('map', {
+        center: [20, 0],
+        zoom: 2,
+        minZoom: 2,
+        maxZoom: 6,
+        detectRetina: true
+    });
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://carto.com/">CARTO</a> Ian Berry, CBS News, Wikipedia'
+    }).addTo(map);
+
+    Papa.parse("assets/data.csv", {
+        header: true,
+        download: true,
+        complete: function(results) {
+            results.data.forEach(row => {
+                if (row.name) {
+                    const name = row.name.trim().toLowerCase();
+                    const gdp = parseFloat(row.gdp);
+                    const tariff = parseFloat(row.tariff);
+                    if (!isNaN(gdp) && !isNaN(tariff)) {
+                        csvData[name] = { GDP: gdp, tariff: tariff };
+                    }
+                }
+            });
+            loadGeoJsonData();
+        }
+    });
+
+    function getColor(gdp, tariff) {
+        if (gdp < 5000 && tariff < 0.15) return "#fee08b";
+        if (gdp < 5000 && tariff >= 0.15 && tariff < 0.30) return "#fdae61";
+        if (gdp < 5000 && tariff >= 0.30) return "#d73027";
+
+        if (gdp >= 5000 && gdp < 20000 && tariff < 0.15) return "#d9ef8b";
+        if (gdp >= 5000 && gdp < 20000 && tariff >= 0.15 && tariff < 0.30) return "#fee08b";
+        if (gdp >= 5000 && gdp < 20000 && tariff >= 0.30) return "#f46d43";
+
+        if (gdp >= 20000 && gdp < 40000 && tariff < 0.15) return "#a6d96a";
+        if (gdp >= 20000 && gdp < 40000 && tariff >= 0.15 && tariff < 0.30) return "#66bd63";
+        if (gdp >= 20000 && gdp < 40000 && tariff >= 0.30) return "#4575b4";
+
+        return "#4575b4";
+    }
+
+    function loadGeoJsonData() {
+        const countryLayer = L.geoJson.ajax("assets/geo-countries-main/data/countries.geojson", {
+            style: function(feature) {
+                const name = feature.properties.name.trim().toLowerCase();
+                const data = csvData[name];
+                if (data) {
+                    return {
+                        color: "#555",
+                        weight: 1,
+                        fillColor: getColor(data.GDP, data.tariff),
+                        fillOpacity: 0.7
+                    };
+                } else {
+                    return {
+                        color: "#555",
+                        weight: 1,
+                        fillColor: "#ccc",
+                        fillOpacity: 0.3
+                    };
+                }
+            },
+            onEachFeature: function(feature, layer) {
+                const name = feature.properties.name;
+                const data = csvData[name.trim().toLowerCase()];
+
+                if (data) {
+                    const gdpFormatted = `$${data.GDP.toLocaleString()}`;
+                    const tariffFormatted = `${(data.tariff * 100).toFixed(1)}%`;
+                    const content = `<b>${name}</b><br>GDP: ${gdpFormatted}<br>Tariff: ${tariffFormatted}`;
+
+                    layer.bindPopup(content);
+
+                    layer.on('mouseover', function(e) {
+                        this.openPopup(e.latlng);
+                    });
+                    layer.on('mouseout', function() {
+                        this.closePopup();
+                    });
+                } else {
+                    const noData = `<b>${name}</b><br>No data available`;
+
+                    layer.bindPopup(noData);
+
+                    layer.on('mouseover', function(e) {
+                        this.openPopup(e.latlng);
+                    });
+                    layer.on('mouseout', function() {
+                        this.closePopup();
+                    });
+                }
+            }
+        }).addTo(map);
+
+        const legendControl = L.control({ position: 'topright' });
+        legendControl.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'legend');
+            div.innerHTML += '<b>GDP vs Tariff Classes</b><br>';
+            div.innerHTML += '<i style="background:#fee08b"></i> Low GDP + Low Tariff<br>';
+            div.innerHTML += '<i style="background:#fdae61"></i> Low GDP + Medium Tariff<br>';
+            div.innerHTML += '<i style="background:#d73027"></i> Low GDP + High Tariff<br>';
+            div.innerHTML += '<i style="background:#d9ef8b"></i> Medium GDP + Low Tariff<br>';
+            div.innerHTML += '<i style="background:#fee08b"></i> Medium GDP + Medium Tariff<br>';
+            div.innerHTML += '<i style="background:#f46d43"></i> Medium GDP + High Tariff<br>';
+            div.innerHTML += '<i style="background:#a6d96a"></i> High GDP + Low Tariff<br>';
+            div.innerHTML += '<i style="background:#66bd63"></i> High GDP + Medium Tariff<br>';
+            div.innerHTML += '<i style="background:#4575b4"></i> High GDP + High Tariff<br>';
+            return div;
+        };
+
+        // Add legend control object to global scope but don't add it to the map initially
+        window.legendControl = legendControl;
+    }
+
+    // Toggle Buttons
+    document.getElementById('toggleTitle').addEventListener('click', () => {
+        const title = document.getElementById('mapTitle');
+        title.style.display = (title.style.display === 'none') ? 'block' : 'none';
+    });
+
+    document.getElementById('toggleDescription').addEventListener('click', () => {
+        const desc = document.getElementById('descriptionBox');
+        desc.style.display = (desc.style.display === 'none') ? 'block' : 'none';
+    });
+
+    document.getElementById('toggleLegend').addEventListener('click', () => {
+        if (map.hasLayer(window.legendControl)) {
+            map.removeControl(window.legendControl);
+        } else {
+            window.legendControl.addTo(map);
+        }
+    });
+</script>
+</body>
+</html>
