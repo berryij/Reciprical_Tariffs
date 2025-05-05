@@ -102,7 +102,7 @@
 <div id="map"></div>
 <div class="map-title" id="mapTitle">Reciprical Tariff vs GDP Per Capita Map</div>
 <div class="description-box" id="descriptionBox">
-    This map was created to visualize the recent tariffs being enfored by president Donald Trump. These Tariffs are mainly focused on forign goods and the tariffs very by country. The home is to show how these tariffs commpare to the GDP of the country, to see if the tariffs themselves are fair and just.
+    This map was created to visualize the recent tariffs being enforced by president Donald Trump. These tariffs are mainly focused on foreign goods and vary by country. The goal is to show how these tariffs compare to the GDP of the country, to see if the tariffs themselves are fair and just.
 </div>
 
 <!-- Toggle Button Container -->
@@ -114,6 +114,7 @@
 
 <script>
     const csvData = {};
+    let legendVisible = false; // Track legend state
 
     const map = L.map('map', {
         center: [20, 0],
@@ -214,6 +215,7 @@
             }
         }).addTo(map);
 
+        // Define but don't add legend yet
         const legendControl = L.control({ position: 'topright' });
         legendControl.onAdd = function(map) {
             const div = L.DomUtil.create('div', 'legend');
@@ -229,8 +231,6 @@
             div.innerHTML += '<i style="background:#4575b4"></i> High GDP + High Tariff<br>';
             return div;
         };
-
-        // Add legend control object to global scope but don't add it to the map initially
         window.legendControl = legendControl;
     }
 
@@ -246,11 +246,12 @@
     });
 
     document.getElementById('toggleLegend').addEventListener('click', () => {
-        if (map.hasLayer(window.legendControl)) {
+        if (legendVisible) {
             map.removeControl(window.legendControl);
         } else {
             window.legendControl.addTo(map);
         }
+        legendVisible = !legendVisible;
     });
 </script>
 </body>
