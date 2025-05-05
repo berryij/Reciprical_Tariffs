@@ -1,1 +1,3 @@
 # Reciprical_Tariffs
+
+This is an interactive bivariate map made to show the tariffs imposed by president trump compared to the GDP of that country. Its main goal is to visualize the tariffs themselves and to see if the tariffs are justified based on the GDP that country brings in. The map has 9 different classes that go from low medium and high, simulating a bivariate color palette. The map has a interactive hover feature which allows users to investigate the countires GDP and Tariff Rate. Title, Description and Legend are able to be toggled to help remove clutter for a better viewing expereince. 
